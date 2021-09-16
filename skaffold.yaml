@@ -1,0 +1,53 @@
+apiVersion: skaffold/v2beta12
+kind: Config
+deploy:
+  kubectl:
+    manifests:
+      - ./k8s/*
+      # To tell Skaffold that we want to manage our deployment using the k8s config files.
+      # Skaffold will automatically terminate the objects once it is being shutdown, do not put objects that need to be persistent during development process
+      # E.g. A Database with information that you want to keep.
+build:
+  # We are going to list out all the different images and deployments that we want skaffold to manage.
+  local:
+    push: false
+    # By default, whenever skaffold builds an image, it is going to try to push the built image off to Docker hub, whatever the default repositories.
+    # For development, you may not want to push these images off to some hub or repo, and only want to keep on local machine for testing.
+  artifacts:
+    # Arrays of images to let skaffold to manage.
+    - image: xholyspirit/client-skaffold
+      # Name of the image that you want skaffold to manage.
+      context: client
+      # Next, specify the folder where we will be building this image from
+      docker:
+        dockerfile: Dockerfile.dev
+        # Next, need to tell skaffold exactly what dockerfile we want to use when building the client image.
+      sync:
+        # sync is mode 2.
+        # Mode 1: Rebuild client image from scratch
+        # Mode 2: Inject updated files into the Client pod, rely on react app to automatically update itself.
+        manual:
+          - src: "src/**/*.js"
+            dest: .
+            # Whenever skaffold sees changes in any javascript files, it will take the file and throw into the container
+          - src: "src/**/*.css"
+            dest: .
+          - src: "src/**/*.html"
+            dest: .
+    - image: xholyspirit/worker-skaffold
+      context: worker
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        manual:
+          - src: "*.js"
+            dest: .
+    - image: xholyspirit/server-skaffold
+      context: server
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        manual:
+          - src: "*.js"
+            dest: .
+
